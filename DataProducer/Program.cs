@@ -20,81 +20,39 @@ builder.Services.AddHttpClient<TokenService>().ConfigurePrimaryHttpMessageHandle
     return handler;
 });
 
-builder.Services.AddHttpClient("OtlpTraceExporter")
-    .AddHttpMessageHandler<TokenRetrievalHandler>()
-    .AddResilienceHandler(
-        "OidcPipeline",
-        static (builder, context) =>
-        {
-            builder.AddRetry(new HttpRetryStrategyOptions
-                {
-                    ShouldHandle = static args =>
+// Extracted method to configure Otlp HttpClients
+void ConfigureOtlpHttpClient(IServiceCollection services, string clientName)
+{
+    services.AddHttpClient(clientName)
+        .AddHttpMessageHandler<TokenRetrievalHandler>()
+        .AddResilienceHandler(
+            "OidcPipeline",
+            static (builder, context) =>
+            {
+                builder.AddRetry(new HttpRetryStrategyOptions
                     {
-                        return ValueTask.FromResult(args is
+                        ShouldHandle = static args =>
                         {
-                            Outcome.Result.StatusCode:
-                                HttpStatusCode.Unauthorized
-                        });
-                    },
-                    OnRetry = async args =>
-                    {
-                       ITokenService tokenService = context.ServiceProvider.GetRequiredService<ITokenService>();
-                       Token? token = await tokenService.GetTokenAsync(CancellationToken.None).ConfigureAwait(false);
-
-                        args.Outcome.Result.RequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(token.Scheme, token.AccessToken);
-                    }
-                });
-        });
-builder.Services.AddHttpClient("OtlpMetricExporter")
-    .AddHttpMessageHandler<TokenRetrievalHandler>()
-    .AddResilienceHandler(
-        "OidcPipeline",
-        static (builder, context) =>
-        {
-            builder.AddRetry(new HttpRetryStrategyOptions
-                {
-                    ShouldHandle = static args =>
-                    {
-                        return ValueTask.FromResult(args is
+                            return ValueTask.FromResult(args is
+                            {
+                                Outcome.Result.StatusCode:
+                                    HttpStatusCode.Unauthorized
+                            });
+                        },
+                        OnRetry = async args =>
                         {
-                            Outcome.Result.StatusCode:
-                                HttpStatusCode.Unauthorized
-                        });
-                    },
-                    OnRetry = async args =>
-                    {
-                       ITokenService tokenService = context.ServiceProvider.GetRequiredService<ITokenService>();
-                       Token? token = await tokenService.GetTokenAsync(CancellationToken.None).ConfigureAwait(false);
+                            ITokenService tokenService = context.ServiceProvider.GetRequiredService<ITokenService>();
+                            Token? token = await tokenService.GetTokenAsync(CancellationToken.None).ConfigureAwait(false);
 
-                        args.Outcome.Result.RequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(token.Scheme, token.AccessToken);
-                    }
-                });
-        });
-builder.Services.AddHttpClient("OtlpLogExporter")
-    .AddHttpMessageHandler<TokenRetrievalHandler>()
-    .AddResilienceHandler(
-        "OidcPipeline",
-        static (builder, context) =>
-        {
-            builder.AddRetry(new HttpRetryStrategyOptions
-                {
-                    ShouldHandle = static args =>
-                    {
-                        return ValueTask.FromResult(args is
-                        {
-                            Outcome.Result.StatusCode:
-                                HttpStatusCode.Unauthorized
-                        });
-                    },
-                    OnRetry = async args =>
-                    {
-                       ITokenService tokenService = context.ServiceProvider.GetRequiredService<ITokenService>();
-                       Token? token = await tokenService.GetTokenAsync(CancellationToken.None).ConfigureAwait(false);
+                            args.Outcome.Result.RequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(token.Scheme, token.AccessToken);
+                        }
+                    });
+            });
+}
 
-                        args.Outcome.Result.RequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(token.Scheme, token.AccessToken);
-                    }
-                });
-        });
+ConfigureOtlpHttpClient(builder.Services, "OtlpTraceExporter");
+ConfigureOtlpHttpClient(builder.Services, "OtlpMetricExporter");
+ConfigureOtlpHttpClient(builder.Services, "OtlpLogExporter");
 
 builder.Services.AddHostedService<Worker>();
 

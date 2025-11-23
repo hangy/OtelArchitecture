@@ -3,7 +3,6 @@
 // Retrieved 2025-11-23, License - CC BY-SA 4.0
 
 using System.Net.Http.Json;
-using System.Reflection;
 
 namespace DataProducer;
 
@@ -23,13 +22,12 @@ public class TokenService(HttpClient httpClient) : ITokenService
     /// <inheritdoc />
     public async ValueTask<Token?> GetTokenAsync(CancellationToken cancellationToken = default)
     {
-        if (_token is null)
+        if (_token is null || DateTimeOffset.UtcNow - _lastRefreshed > TimeSpan.FromMinutes(5))
         {
             return await RefreshTokenAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return _token!;
-    }
 
     /// <inheritdoc />
     public async ValueTask<Token?> RefreshTokenAsync(CancellationToken cancellationToken = default)
