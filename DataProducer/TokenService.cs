@@ -28,6 +28,7 @@ public class TokenService(HttpClient httpClient) : ITokenService
         }
 
         return _token!;
+    }
 
     /// <inheritdoc />
     public async ValueTask<Token?> RefreshTokenAsync(CancellationToken cancellationToken = default)
