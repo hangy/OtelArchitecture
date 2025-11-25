@@ -1,7 +1,12 @@
-// Source - https://stackoverflow.com/a/73123449
-// Posted by Peter Csala, modified by community. See post 'Timeline' for change history
-// Retrieved 2025-11-23, License - CC BY-SA 4.0
+// Copyright (c) Duende Software. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 
 namespace DataProducer;
 
-public record Token(string Scheme, string AccessToken);
+public record Token
+{
+    public string? access_token { get; init; }
+    public string? token_type { get; init; }
+    public string? scope { get; init; }
+    public int? expires_in { get; init; }
+}

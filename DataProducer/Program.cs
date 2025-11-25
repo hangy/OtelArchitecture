@@ -47,8 +47,10 @@ void ConfigureOtlpHttpClient(IServiceCollection services, string clientName)
                         {
                             ITokenService tokenService = context.ServiceProvider.GetRequiredService<ITokenService>();
                             Token? token = await tokenService.GetTokenAsync(CancellationToken.None).ConfigureAwait(false);
-
-                            args.Outcome.Result.RequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(token.Scheme, token.AccessToken);
+                            if (token is not null)
+                            {
+                                args.Outcome.Result.RequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(token.token_type, token.access_token);
+                            }
                         }
                     });
             });

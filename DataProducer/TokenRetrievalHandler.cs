@@ -43,7 +43,7 @@ public class TokenRetrievalHandler(ITokenService tokenService, ILogger<TokenRetr
 
         if (token is not null)
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue(token.Scheme, token.AccessToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue(token.token_type, token.access_token);
         }
 
         return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
