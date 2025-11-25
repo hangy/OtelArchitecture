@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Headers;
 
 var rsaKey = RSA.Create(2048);
 var securityKey = new RsaSecurityKey(rsaKey) { KeyId = "key-1" };
@@ -81,9 +82,9 @@ app.MapGet("/.well-known/jwks", () =>
 {
     // Konvertiert unseren RSA Public Key in das JWK JSON Format
     var jwk = JsonWebKeyConverter.ConvertFromRSASecurityKey(securityKey);
-    var jwksJson = System.Text.Json.JsonSerializer.Serialize(new[] { jwk });
-    var jwks = new JsonWebKeySet(jwksJson);
-    return Results.Json(jwks);
+    var jwks = new JsonWebKeySet();
+    jwks.Keys.Add(jwk);
+    return Results.Json(jwks, contentType: "application/jwk-set+json");
 });
 
 app.MapDefaultEndpoints();
