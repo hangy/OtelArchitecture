@@ -105,6 +105,9 @@ app.MapGet("/.well-known/jwks", () =>
 {
     // Konvertiert unseren RSA Public Key in das JWK JSON Format
     var jwk = JsonWebKeyConverter.ConvertFromRSASecurityKey(securityKey);
+    jwk.Kty = "RSA";
+    jwk.Use = "sig";
+    jwk.Alg = "RS256";
     var jwks = new JsonWebKeySet();
     jwks.Keys.Add(jwk);
     return Results.Json(jwks, contentType: "application/jwk-set+json");
