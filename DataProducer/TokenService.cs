@@ -2,6 +2,7 @@
 // Posted by Peter Csala, modified by community. See post 'Timeline' for change history
 // Retrieved 2025-11-23, License - CC BY-SA 4.0
 
+using System;
 using System.Net.Http.Json;
 
 namespace DataProducer;
@@ -13,7 +14,7 @@ public interface ITokenService
     ValueTask<Token?> RefreshTokenAsync(CancellationToken cancellationToken = default);
 }
 
-public class TokenService(HttpClient httpClient) : ITokenService
+public class TokenService(HttpClient httpClient, TimeProvider timeProvider) : ITokenService
 {
     private Token? _token;
 
@@ -34,7 +35,7 @@ public class TokenService(HttpClient httpClient) : ITokenService
     public async ValueTask<Token?> RefreshTokenAsync(CancellationToken cancellationToken = default)
     {
         _token = await httpClient.GetFromJsonAsync<Token>("http://tokenserver/token", cancellationToken).ConfigureAwait(false);
-        _lastRefreshed = DateTimeOffset.UtcNow;
+        _lastRefreshed = timeProvider.GetUtcNow();
         return _token;
     }
 }

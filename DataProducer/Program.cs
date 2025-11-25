@@ -9,6 +9,7 @@ HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddTransient<TokenRetrievalHandler>();
 builder.Services.ConfigureHttpClientDefaults(options => 
