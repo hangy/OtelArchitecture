@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http.Headers;
 
 var rsaKey = RSA.Create(2048);
 var securityKey = new RsaSecurityKey(rsaKey) { KeyId = "key-1" };
@@ -34,6 +33,35 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+static ClaimsIdentity MapCurrentUserToOpenIdClaims(ClaimsPrincipal user)
+{
+    ArgumentNullException.ThrowIfNull(user);
+
+    if (user.Identity is not ClaimsIdentity identity || !identity.IsAuthenticated)
+    {
+        throw new InvalidOperationException("User is not authenticated.");
+    }
+
+    var newIdentity = new ClaimsIdentity(
+    [
+        new Claim(JwtRegisteredClaimNames.Sub, identity.Name!),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.CreateVersion7().ToString())
+    ]);
+
+    var sid = user.FindFirst(ClaimTypes.PrimarySid);
+    if (sid != null)
+    {
+        newIdentity.AddClaim(sid);
+    }
+
+    foreach (var group in user.Claims.Where(c => c.Type == identity.RoleClaimType))
+    {
+        newIdentity.AddClaim(new Claim(ClaimTypes.Role, group.Value));
+    }
+
+    return newIdentity;
+}
+
 // --- ENDPUNKT 1: Token Ausgabe (Geschützt durch Windows Auth) ---
 app.MapGet("/token", (HttpContext ctx) =>
 {
@@ -43,12 +71,7 @@ app.MapGet("/token", (HttpContext ctx) =>
     // Token Descriptor erstellen
     var tokenDescriptor = new SecurityTokenDescriptor
     {
-        Subject = new ClaimsIdentity(
-        [
-            new Claim(JwtRegisteredClaimNames.Sub, user.Name!), // z.B. DOMAIN\User
-            new Claim("upn", user.Name!), 
-            // Hier Gruppen aus user.Claims mappen, falls gewünscht
-        ]),
+        Subject = MapCurrentUserToOpenIdClaims(ctx.User),
         Expires = DateTime.UtcNow.AddHours(1),
         Issuer = $"{ctx.Request.Scheme}://{ctx.Request.Host}",
         Audience = "my-app",
