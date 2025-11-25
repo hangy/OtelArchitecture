@@ -11,13 +11,16 @@ builder.AddServiceDefaults();
 
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddTransient<TokenRetrievalHandler>();
-builder.Services.AddHttpClient<TokenService>().ConfigurePrimaryHttpMessageHandler(services =>
+builder.Services.ConfigureHttpClientDefaults(options => 
 {
-    WinHttpHandler handler = new()
+    options.ConfigurePrimaryHttpMessageHandler(services => 
     {
-        ServerCredentials = CredentialCache.DefaultNetworkCredentials
-    };
-    return handler;
+        HttpClientHandler handler = new()
+        {
+            Credentials = CredentialCache.DefaultNetworkCredentials
+        };
+        return handler;
+    });
 });
 
 // Extracted method to configure Otlp HttpClients
