@@ -11,6 +11,8 @@
   <ItemGroup>
     <ProjectReference Include="..\ApiService\ApiService.csproj" />
     <ProjectReference Include="..\DataProducer\DataProducer.csproj" />
+    <ProjectReference Include="..\Playground\AuthenticatedApi\AuthenticatedApi.csproj" />
+    <ProjectReference Include="..\Playground\SomeClient\SomeClient.csproj" />
   </ItemGroup>
 
 </Project>

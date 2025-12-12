@@ -10,8 +10,9 @@ extensions:
   oidc:
     providers:
       - issuer_url: ${env:TOKENSERVER_HTTP}
-        audience: account
-        username_claim: email
+        audience: my-app
+        username_claim: sub
+        groups_claim: role
   basicauth/client:
     client_auth: 
       username: ${env:OTEL_BASICAUTH_USER}
@@ -83,3 +84,8 @@ service:
       exporters: [debug, otlphttp]
 
   extensions: [health_check, pprof, zpages, oidc, basicauth/client]
+
+  telemetry:
+    logs:
+      level: "DEBUG"
+      development: true

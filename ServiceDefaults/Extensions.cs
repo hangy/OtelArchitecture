@@ -28,7 +28,7 @@ public static class Extensions
 
         builder.Services.AddServiceDiscovery();
 
-        builder.Services.ConfigureHttpClientDefaults(http =>
+        builder.Services.ConfigureHttpClientDefaults(static http =>
         {
             // Turn on resilience by default
             http.AddStandardResilienceHandler();
@@ -97,7 +97,7 @@ public static class Extensions
     {
         builder.Services.AddHealthChecks()
             // Add a default liveness check to ensure app is responsive
-            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+            .AddCheck("self", static () => HealthCheckResult.Healthy(), ["live"]);
 
         return builder;
     }
@@ -114,7 +114,7 @@ public static class Extensions
             // Only health checks tagged with the "live" tag must pass for app to be considered alive
             app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
             {
-                Predicate = r => r.Tags.Contains("live")
+                Predicate = static r => r.Tags.Contains("live")
             });
         }
 

@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/Playground/">
+    <File Path="README.md" />
+    <Project Path="Playground/AuthenticatedApi/AuthenticatedApi.csproj" />
+    <Project Path="Playground/SomeClient/SomeClient.csproj" />
+  </Folder>
   <Project Path="ApiService/ApiService.csproj" />
   <Project Path="AppHost/AppHost.csproj" />
   <Project Path="DataProducer/DataProducer.csproj" />
