@@ -23,7 +23,8 @@ var collectorWithBasicAuth = builder.AddContainer("collectorwithbasicauth", "ote
     .WithEnvironment(otelBasicAuthPasswordEnv, otelBasicAuthPassword)
     .WithOtlpExporter()
     .WithEnvironment("OTEL_EXPORTER_OTLP_API_KEY", builder.Configuration["AppHost:OtlpApiKey"])
-    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://host.docker.internal:21045");
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://host.docker.internal:21045")
+    .WithDeveloperCertificateTrust(true);
 
 var gatewayHttp = collectorWithBasicAuth.GetEndpoint("http");
 
@@ -40,7 +41,8 @@ var collectorWithTokenAuth = builder.AddContainer("collectorwithtokenauth", "ote
     .WaitFor(tokenServer)
     .WaitFor(collectorWithBasicAuth)
     .WithOtlpExporter()
-    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://host.docker.internal:21045");;
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://host.docker.internal:21045")
+    .WithDeveloperCertificateTrust(true);
 
 var otelHttp = collectorWithTokenAuth.GetEndpoint("http");
 
