@@ -85,7 +85,20 @@ service:
 
   extensions: [health_check, pprof, zpages, oidc, basicauth/client]
 
-  telemetry:
-    logs:
-      level: "DEBUG"
-      development: true
+#  telemetry:
+#    logs:
+#      level: "DEBUG"
+#      development: true
+#      processors:
+#        - batch:
+#            exporter:
+#              otlp:
+#                protocol: grpc
+#                endpoint: ${env:OTEL_EXPORTER_OTLP_ENDPOINT}
+#    traces:
+#      processors:
+#        - batch:
+#            exporter:
+#              otlp:
+#                protocol: grpc
+#                endpoint: ${env:OTEL_EXPORTER_OTLP_ENDPOINT}

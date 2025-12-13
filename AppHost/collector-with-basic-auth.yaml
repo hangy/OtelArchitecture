@@ -80,3 +80,21 @@ service:
       exporters: [debug, otlp]
 
   extensions: [health_check, pprof, zpages, basicauth/server]
+
+#  telemetry:
+#    logs:
+#      level: "DEBUG"
+#      development: true
+#      processors:
+#        - batch:
+#            exporter:
+#              otlp:
+#                protocol: grpc
+#                endpoint: ${env:OTEL_EXPORTER_OTLP_ENDPOINT}
+#    traces:
+#      processors:
+#        - batch:
+#            exporter:
+#              otlp:
+#                protocol: grpc
+#                endpoint: ${env:OTEL_EXPORTER_OTLP_ENDPOINT}
