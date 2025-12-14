@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      AllDeps:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: fix
+      prefix-development: chore
+      include: scope
+
+  - package-ecosystem: "dotnet-sdk"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: fix
+      prefix-development: chore
+      include: scope
