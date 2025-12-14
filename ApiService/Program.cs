@@ -1,21 +1,20 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Linq;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-
-var rsaKey = RSA.Create(2048);
-var securityKey = new RsaSecurityKey(rsaKey) { KeyId = "key-1" };
-var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Canonical issuer override (important when different callers reach the service via different hosts,
-// e.g. Aspire service discovery vs Docker containers).
-var canonicalIssuer = builder.Configuration["Oidc:Issuer"]
-    ?? builder.Configuration["OIDC_ISSUER"];
-canonicalIssuer = string.IsNullOrWhiteSpace(canonicalIssuer) ? null : canonicalIssuer.TrimEnd('/');
+// Register options and provider
+builder.Services.Configure<OidcOptions>(builder.Configuration.GetSection("Oidc"));
+builder.Services.AddSingleton<SigningCertificateProvider>();
+builder.Services.AddSingleton<CertificateHealthCheck>();
+builder.Services.AddHealthChecks().AddCheck<CertificateHealthCheck>("signing-cert");
 
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
@@ -41,7 +40,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseCors(options=>
+app.UseCors(options =>
 {
     options.AllowAnyOrigin()
            .AllowAnyHeader()
@@ -86,19 +85,25 @@ static ClaimsIdentity MapCurrentUserToOpenIdClaims(ClaimsPrincipal user)
 }
 
 // --- ENDPUNKT 1: Token Ausgabe (Geschützt durch Windows Auth) ---
-app.MapGet("/token", (HttpContext ctx) =>
+app.MapGet("/token", (HttpContext ctx, SigningCertificateProvider provider, TimeProvider timeProvider, IOptions<OidcOptions> opts) =>
 {
-    var user = ctx.User.Identity as ClaimsIdentity;
-    if (user == null || !user.IsAuthenticated) return Results.Unauthorized();
+    if (ctx.User.Identity is not ClaimsIdentity user || !user.IsAuthenticated) return Results.Unauthorized();
+
+    var creds = provider.GetSigningCredentials();
+    if (creds == null)
+    {
+        // No signing credentials available and fallback not allowed -> service unavailable
+        return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    }
 
     // Token Descriptor erstellen
     var tokenDescriptor = new SecurityTokenDescriptor
     {
         Subject = MapCurrentUserToOpenIdClaims(ctx.User),
-        Expires = DateTime.UtcNow.AddHours(1),
-        Issuer = canonicalIssuer ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}",
+        Expires = timeProvider.GetUtcNow().AddHours(1).UtcDateTime,
+        Issuer = opts.Value.Issuer ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}",
         Audience = "my-app",
-        SigningCredentials = credentials
+        SigningCredentials = creds
     };
 
     var tokenHandler = new JwtSecurityTokenHandler();
@@ -108,9 +113,9 @@ app.MapGet("/token", (HttpContext ctx) =>
 }).RequireAuthorization(); // <--- Erzwingt Kerberos Challenge
 
 // --- ENDPUNKT 2: Discovery Document (.well-known) ---
-app.MapGet("/.well-known/openid-configuration", (HttpContext ctx) =>
+app.MapGet("/.well-known/openid-configuration", (HttpContext ctx, IOptions<OidcOptions> opts) =>
 {
-    var baseUrl = canonicalIssuer ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+    var baseUrl = opts.Value.Issuer ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}";
     var config = new OpenIdConnectConfiguration
     {
         Issuer = baseUrl,
@@ -124,21 +129,76 @@ app.MapGet("/.well-known/openid-configuration", (HttpContext ctx) =>
 });
 
 // --- ENDPUNKT 3: Public Key (JWKS) ---
-app.MapGet("/.well-known/jwks", () =>
+app.MapGet("/.well-known/jwks", (SigningCertificateProvider provider) =>
 {
-    // Public-only JWK, damit Bibliotheken wie go-oidc/go-jose den Key sicher parsen
-    var parameters = rsaKey.ExportParameters(false);
-    var jwk = new
-    {
-        kty = "RSA",
-        kid = "key-1",
-        use = "sig",
-        alg = "RS256",
-        n = Base64UrlEncoder.Encode(parameters.Modulus),
-        e = Base64UrlEncoder.Encode(parameters.Exponent)
-    };
+    var keys = new List<object>();
 
-    return Results.Json(new { keys = new[] { jwk } }, contentType: "application/jwk-set+json");
+    var certs = provider.GetAvailable();
+    foreach (var cert in certs)
+    {
+        try
+        {
+            using var pubRsa = cert.GetRSAPublicKey();
+            if (pubRsa == null) continue;
+            var parameters = pubRsa.ExportParameters(false);
+            // include x5c certificate chain entry for clients that expect it
+            var x5c = Convert.ToBase64String(cert.Export(X509ContentType.Cert));
+            keys.Add(new
+            {
+                kty = "RSA",
+                kid = cert.Thumbprint,
+                use = "sig",
+                alg = "RS256",
+                n = Base64UrlEncoder.Encode(parameters.Modulus),
+                e = Base64UrlEncoder.Encode(parameters.Exponent),
+                x5c = new[] { x5c }
+            });
+        }
+        catch
+        {
+            // ignore certs that cannot be exported as RSA public params
+        }
+    }
+
+    // If no certs found, publish fallback in-memory key only if provider allows fallback (dev)
+    if (keys.Count == 0)
+    {
+        if (provider.IsUsingFallback())
+        {
+            var creds = provider.GetSigningCredentials();
+            if (creds?.Key is RsaSecurityKey rsk)
+            {
+                var parameters = rsk.Rsa.ExportParameters(false);
+                keys.Add(new
+                {
+                    kty = "RSA",
+                    kid = "key-1",
+                    use = "sig",
+                    alg = "RS256",
+                    n = Base64UrlEncoder.Encode(parameters.Modulus),
+                    e = Base64UrlEncoder.Encode(parameters.Exponent)
+                });
+            }
+        }
+        else
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+    }
+
+    return Results.Json(new { keys = keys }, contentType: "application/jwk-set+json");
+});
+
+// Operational endpoint: show which cert is currently selected for signing (thumbprint + expiry)
+app.MapGet("/signing-info", (SigningCertificateProvider provider) =>
+{
+    var cert = provider.GetSigningCert();
+    if (cert == null)
+    {
+        return Results.Json(new { usingFallback = true, kid = "key-1" });
+    }
+
+    return Results.Json(new { usingFallback = false, kid = cert.Thumbprint, notBefore = cert.NotBefore, notAfter = cert.NotAfter, subject = cert.Subject });
 });
 
 app.MapDefaultEndpoints();

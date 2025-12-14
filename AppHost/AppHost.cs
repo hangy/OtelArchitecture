@@ -14,7 +14,7 @@ var tokenServer = builder.AddProject<Projects.ApiService>("tokenserver")
 var tokenServerHttp = tokenServer.GetEndpoint("http");
 
 // Ensure the token issuer is stable across different access paths (host vs Docker).
-tokenServer.WithEnvironment("OIDC_ISSUER", "http://host.docker.internal:5479"); // tokenServerHttp);
+tokenServer.WithEnvironment("Oidc__Issuer", "http://host.docker.internal:5479"); // tokenServerHttp);
 
 var collectorWithBasicAuth = builder.AddContainer("collectorwithbasicauth", "otel/opentelemetry-collector-contrib:latest")
     .WithBindMount("collector-with-basic-auth.yaml", "/etc/otelcol-contrib/config.yaml", isReadOnly: true)
