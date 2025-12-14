@@ -8,6 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.Extensions.Options;
 
+const string CorsMetadataPolicy = "Metadata";
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Register options and provider
@@ -30,22 +32,26 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    // Allow only GET from any origin for public metadata (discovery, jwks, signing-info)
+    options.AddPolicy(CorsMetadataPolicy, policy =>
     {
         policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+              .WithMethods(HttpMethod.Get.Method)
+              .AllowAnyHeader();
+    });
+
+    // Default policy: deny cross-origin requests by default. Use endpoint-specific RequireCors for allowed endpoints.
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.SetIsOriginAllowed(origin => false);
     });
 });
 
 var app = builder.Build();
 
-app.UseCors(options =>
-{
-    options.AllowAnyOrigin()
-           .AllowAnyHeader()
-           .AllowAnyMethod();
-});
+// Register CORS middleware. The default policy denies cross-origin requests;
+// endpoint-specific policies are applied with RequireCors.
+app.UseCors();
 
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
@@ -126,7 +132,7 @@ app.MapGet("/.well-known/openid-configuration", (HttpContext ctx, IOptions<OidcO
     config.ResponseTypesSupported.Add("token");
     config.IdTokenSigningAlgValuesSupported.Add("RS256");
     return Results.Json(config);
-});
+}).RequireCors(CorsMetadataPolicy);
 
 // --- ENDPUNKT 3: Public Key (JWKS) ---
 app.MapGet("/.well-known/jwks", (SigningCertificateProvider provider) =>
@@ -167,7 +173,7 @@ app.MapGet("/.well-known/jwks", (SigningCertificateProvider provider) =>
     }
 
     return Results.Json(new { keys = keys }, contentType: "application/jwk-set+json");
-});
+}).RequireCors(CorsMetadataPolicy);
 
 // Operational endpoint: show which cert is currently selected for signing (thumbprint + expiry)
 app.MapGet("/signing-info", (SigningCertificateProvider provider) =>
@@ -179,7 +185,7 @@ app.MapGet("/signing-info", (SigningCertificateProvider provider) =>
     }
 
     return Results.Json(new { present = true, kid = cert.Thumbprint, notBefore = cert.NotBefore, notAfter = cert.NotAfter, subject = cert.Subject });
-});
+}).RequireCors(CorsMetadataPolicy);
 
 app.MapDefaultEndpoints();
 
