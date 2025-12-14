@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.IO;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -12,8 +13,6 @@ public sealed class SigningCertificateProvider : IDisposable
     private ImmutableList<X509Certificate2> _available = [];
     private X509Certificate2? _signingCert;
     private readonly IOptionsMonitor<OidcOptions> _opts;
-    private readonly bool _allowFallback;
-    private RSA? _devFallback;
 
     public SigningCertificateProvider(IOptionsMonitor<OidcOptions> opts, IHostEnvironment env, TimeProvider timeProvider)
     {
@@ -21,11 +20,7 @@ public sealed class SigningCertificateProvider : IDisposable
         ArgumentNullException.ThrowIfNull(env);
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
 
-        _allowFallback = env.IsDevelopment();
-        if (_allowFallback)
-        {
-            _devFallback = RSA.Create(2048);
-        }
+        // No development fallback allowed for security/consistency reasons.
 
         var changeToken = _opts.OnChange(_ => Reload());
         if (changeToken is null)
@@ -40,7 +35,7 @@ public sealed class SigningCertificateProvider : IDisposable
     private void Reload()
     {
         var opts = _opts.CurrentValue;
-        var certs = GetAvailableCerts(opts?.SigningCertSubjectPattern);
+        var certs = GetAvailableCerts(opts);
 
         lock (_lock)
         {
@@ -60,34 +55,56 @@ public sealed class SigningCertificateProvider : IDisposable
         lock (_lock) { return _signingCert; }
     }
 
-    public bool IsUsingFallback()
-    {
-        lock (_lock) { return _signingCert == null && _devFallback != null; }
-    }
-
     public SigningCredentials? GetSigningCredentials()
     {
         var cert = GetSigningCert();
         if (cert != null) return new SigningCredentials(new X509SecurityKey(cert) { KeyId = cert.Thumbprint }, SecurityAlgorithms.RsaSha256);
-        if (_devFallback != null) return new SigningCredentials(new RsaSecurityKey(_devFallback) { KeyId = "key-1" }, SecurityAlgorithms.RsaSha256);
         return null;
     }
 
-    private ImmutableList<X509Certificate2> GetAvailableCerts(string? subjectPattern)
+    private ImmutableList<X509Certificate2> GetAvailableCerts(OidcOptions? opts)
     {
+        var builder = ImmutableList.CreateBuilder<X509Certificate2>();
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+
+        // If a PFX path is explicitly provided in options, try to load it into memory
+        // (EphemeralKeySet so we don't persist or import into the machine store).
+        try
+        {
+            var pfxPath = opts?.SigningPfxPath;
+            if (!string.IsNullOrWhiteSpace(pfxPath) && File.Exists(pfxPath))
+            {
+                var password = opts?.SigningPfxPassword;
+                var cert = X509CertificateLoader.LoadPkcs12FromFile(pfxPath, password, X509KeyStorageFlags.EphemeralKeySet);
+                // accept only certs with private key and RSA public key and valid dates
+                if (cert.HasPrivateKey && cert.GetRSAPublicKey() != null && cert.NotBefore <= now && cert.NotAfter > now)
+                {
+                    builder.Add(cert);
+                }
+                else
+                {
+                    cert.Dispose();
+                }
+            }
+        }
+        catch
+        {
+            // ignore PFX load failures; fallback to store-based certificates below
+        }
+
         using var store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
         store.Open(OpenFlags.ReadOnly);
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
-        var certs = store.Certificates
+        var storeCerts = store.Certificates
             .Cast<X509Certificate2>()
             .Where(c => c.NotBefore <= now && c.NotAfter > now && c.HasPrivateKey && c.GetRSAPublicKey() != null);
 
+        var subjectPattern = opts?.SigningCertSubjectPattern;
         if (!string.IsNullOrWhiteSpace(subjectPattern))
         {
             try
             {
                 var rx = new System.Text.RegularExpressions.Regex(subjectPattern);
-                certs = certs.Where(c => !string.IsNullOrWhiteSpace(c.Subject) && rx.IsMatch(c.Subject));
+                storeCerts = storeCerts.Where(c => !string.IsNullOrWhiteSpace(c.Subject) && rx.IsMatch(c.Subject));
             }
             catch
             {
@@ -95,7 +112,33 @@ public sealed class SigningCertificateProvider : IDisposable
             }
         }
 
-        return [..certs.OrderByDescending(c => c.NotAfter)];
+        foreach (var c in storeCerts.OrderByDescending(c => c.NotAfter))
+        {
+            // Attempt to create a usable X509Certificate2 instance without exporting the private key.
+            // Use the constructor that takes the existing certificate handle; on Windows this preserves access
+            // to non-exportable private keys when running in the same user/machine context.
+            try
+            {
+                var clone = new X509Certificate2(c);
+                builder.Add(clone);
+            }
+            catch
+            {
+                try
+                {
+                    // Fallback: try exporting public cert only (no private key) so it can still appear in JWKS.
+                    var exported = c.Export(X509ContentType.Cert);
+                    var pubOnly = X509CertificateLoader.LoadCertificate(exported);
+                    builder.Add(pubOnly);
+                }
+                catch
+                {
+                    // ignore certificates that cannot be cloned or exported
+                }
+            }
+        }
+
+        return builder.ToImmutable();
     }
 
     private static X509Certificate2? SelectSigningCert(OidcOptions? opts, ImmutableList<X509Certificate2> certs)
@@ -113,7 +156,6 @@ public sealed class SigningCertificateProvider : IDisposable
     public void Dispose()
     {
         _changeToken?.Dispose();
-        _devFallback?.Dispose();
         foreach (var c in _available) c.Dispose();
         _available.Clear();
     }

@@ -7,4 +7,6 @@ public class OidcOptions
     public string? Issuer { get; set; }
     public string? SigningCertThumbprint { get; set; }
     public string? SigningCertSubjectPattern { get; set; }
+    public string? SigningPfxPath { get; set; }
+    public string? SigningPfxPassword { get; set; }
 }

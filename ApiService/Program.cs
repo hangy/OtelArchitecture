@@ -160,30 +160,10 @@ app.MapGet("/.well-known/jwks", (SigningCertificateProvider provider) =>
         }
     }
 
-    // If no certs found, publish fallback in-memory key only if provider allows fallback (dev)
+    // If no certs found, return 503 Service Unavailable (no fallback in production or dev)
     if (keys.Count == 0)
     {
-        if (provider.IsUsingFallback())
-        {
-            var creds = provider.GetSigningCredentials();
-            if (creds?.Key is RsaSecurityKey rsk)
-            {
-                var parameters = rsk.Rsa.ExportParameters(false);
-                keys.Add(new
-                {
-                    kty = "RSA",
-                    kid = "key-1",
-                    use = "sig",
-                    alg = "RS256",
-                    n = Base64UrlEncoder.Encode(parameters.Modulus),
-                    e = Base64UrlEncoder.Encode(parameters.Exponent)
-                });
-            }
-        }
-        else
-        {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-        }
+        return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
 
     return Results.Json(new { keys = keys }, contentType: "application/jwk-set+json");
@@ -195,10 +175,10 @@ app.MapGet("/signing-info", (SigningCertificateProvider provider) =>
     var cert = provider.GetSigningCert();
     if (cert == null)
     {
-        return Results.Json(new { usingFallback = true, kid = "key-1" });
+        return Results.Json(new { present = false });
     }
 
-    return Results.Json(new { usingFallback = false, kid = cert.Thumbprint, notBefore = cert.NotBefore, notAfter = cert.NotAfter, subject = cert.Subject });
+    return Results.Json(new { present = true, kid = cert.Thumbprint, notBefore = cert.NotBefore, notAfter = cert.NotAfter, subject = cert.Subject });
 });
 
 app.MapDefaultEndpoints();

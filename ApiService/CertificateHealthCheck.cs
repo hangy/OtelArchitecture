@@ -16,11 +16,6 @@ public class CertificateHealthCheck : IHealthCheck
 
     public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        if (_provider.IsUsingFallback())
-        {
-            return Task.FromResult(HealthCheckResult.Degraded($"Using development fallback signing key (no deployed cert)."));
-        }
-
         var cert = _provider.GetSigningCert();
         if (cert == null) return Task.FromResult(HealthCheckResult.Unhealthy("No signing certificate available"));
         var now = _timeProvider.GetUtcNow();

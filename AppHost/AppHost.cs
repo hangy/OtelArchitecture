@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 const string otelBasicAuthUserEnv = "OTEL_BASICAUTH_USER";
@@ -13,8 +16,25 @@ var tokenServer = builder.AddProject<Projects.ApiService>("tokenserver")
 
 var tokenServerHttp = tokenServer.GetEndpoint("http");
 
-// Ensure the token issuer is stable across different access paths (host vs Docker).
-tokenServer.WithEnvironment("Oidc__Issuer", "http://host.docker.internal:5479"); // tokenServerHttp);
+// For local dev: generate a self-signed dev certificate, export PFX and pass path+password to the token server.
+{
+    var secretsDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), ".secrets"));
+    Directory.CreateDirectory(secretsDir);
+    var pfxPath = Path.Combine(secretsDir, "tokenserver.pfx");
+    var pfxPassword = Guid.NewGuid().ToString("N");
+
+    using var rsa = RSA.Create(2048);
+    var req = new CertificateRequest("CN=signing-dev", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+    var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+    File.WriteAllBytes(pfxPath, cert.Export(X509ContentType.Pfx, pfxPassword));
+
+    // Pass PFX path and password to the token server process
+    tokenServer.WithEnvironment("Oidc__SigningPfxPath", pfxPath)
+               .WithEnvironment("Oidc__SigningPfxPassword", pfxPassword)
+               // also ensure the issuer is stable
+               .WithEnvironment("Oidc__Issuer", "http://host.docker.internal:5479")
+               .WithEnvironment("Oidc__SigningCertSubjectPattern", "^CN=signing-dev");
+}
 
 var collectorWithBasicAuth = builder.AddContainer("collectorwithbasicauth", "otel/opentelemetry-collector-contrib:latest")
     .WithBindMount("collector-with-basic-auth.yaml", "/etc/otelcol-contrib/config.yaml", isReadOnly: true)
