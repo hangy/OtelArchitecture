@@ -8,7 +8,7 @@ const string otelBasicAuthPasswordEnv = "OTEL_BASICAUTH_PASSWORD";
 string otelBasicAuthUser = Guid.NewGuid().ToString("N");
 string otelBasicAuthPassword = Guid.NewGuid().ToString("N");
 
-var tokenServer = builder.AddProject<Projects.ApiService>("tokenserver")
+var tokenServer = builder.AddProject<Projects.AlbusKavaliro_WinTokenBridge>("tokenserver")
     .WithExternalHttpEndpoints()
     .AsHttp2Service()
     .WithHttpHealthCheck("/health")
@@ -26,7 +26,7 @@ var tokenServerHttp = tokenServer.GetEndpoint("http");
     using var rsa = RSA.Create(2048);
     var req = new CertificateRequest("CN=signing-dev", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
     var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
-    File.WriteAllBytes(pfxPath, cert.Export(X509ContentType.Pfx, pfxPassword));
+    await File.WriteAllBytesAsync(pfxPath, cert.Export(X509ContentType.Pfx, pfxPassword)).ConfigureAwait(false);
 
     // Pass PFX path and password to the token server process
     tokenServer.WithEnvironment("Oidc__SigningPfxPath", pfxPath)

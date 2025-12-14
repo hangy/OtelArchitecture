@@ -4,7 +4,7 @@
     <Project Path="Playground/AuthenticatedApi/AuthenticatedApi.csproj" />
     <Project Path="Playground/SomeClient/SomeClient.csproj" />
   </Folder>
-  <Project Path="ApiService/ApiService.csproj" />
+  <Project Path="AlbusKavaliro.WinTokenBridge/AlbusKavaliro.WinTokenBridge.csproj" />
   <Project Path="AppHost/AppHost.csproj" />
   <Project Path="DataProducer/DataProducer.csproj" />
   <Project Path="ServiceDefaults/ServiceDefaults.csproj" />
