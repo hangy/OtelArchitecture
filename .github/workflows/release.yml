@@ -36,6 +36,15 @@ jobs:
         run: dotnet build -c Release --no-restore
       - name: Publish
         run: dotnet publish -c Release ./src/AlbusKavaliro.WinTokenBridge/AlbusKavaliro.WinTokenBridge.csproj
+      - name: Zip publish output
+        shell: pwsh
+        run: |
+          $publishDir = 'src/AlbusKavaliro.WinTokenBridge/bin/Release/net10.0/publish';
+          $zipPath = 'artifacts/WinTokenBridge-net10.0.zip';
+          if (Test-Path $zipPath) { Remove-Item $zipPath }
+          New-Item -ItemType Directory -Force -Path (Split-Path $zipPath)
+          Compress-Archive -Path (Join-Path $publishDir '*') -DestinationPath $zipPath -Force
+          Write-Host 'Zipped publish output to' $zipPath
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
