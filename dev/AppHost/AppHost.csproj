@@ -1,0 +1,15 @@
+<Project Sdk="Aspire.AppHost.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>67d0e344-8783-4fe9-a78f-088e2a105184</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AlbusKavaliro.WinTokenBridge\AlbusKavaliro.WinTokenBridge.csproj" />
+    <ProjectReference Include="..\..\dev\DataProducer\DataProducer.csproj" />
+    <ProjectReference Include="..\..\examples\AuthenticatedApi\AuthenticatedApi.csproj" />
+    <ProjectReference Include="..\..\examples\SomeClient\SomeClient.csproj" />
+  </ItemGroup>
+
+</Project>
