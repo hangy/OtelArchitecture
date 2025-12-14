@@ -7,11 +7,17 @@ using System.Net.Http.Headers;
 using Polly;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 
 namespace DataProducer;
 
 public class TokenRetrievalHandler(ITokenService tokenService, ILogger<TokenRetrievalHandler> logger) : DelegatingHandler
 {
+    private static readonly ActivitySource s_activitySource = new("DataProducer.TokenRetrievalHandler");
+    private static readonly Meter s_meter = new("DataProducer.TokenRetrievalHandler");
+    private static readonly Counter<long> s_tokenReuses = s_meter.CreateCounter<long>("token_reuses", description: "Number of times a token was reused from context");
+
     private const string TokenRetrieval = nameof(TokenRetrieval);
     private const string TokenKey = nameof(TokenKey);
 
@@ -38,6 +44,12 @@ public class TokenRetrievalHandler(ITokenService tokenService, ILogger<TokenRetr
                 {
                     context.Properties.Set(s_tokenKey, token);
                 }
+            }
+            else
+            {
+                using var activity = s_activitySource.StartActivity("TokenReused");
+                activity?.SetTag("token.reused", true);
+                s_tokenReuses.Add(1);
             }
         }
 

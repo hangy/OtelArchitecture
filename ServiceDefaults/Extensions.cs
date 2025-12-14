@@ -59,7 +59,9 @@ public static class Extensions
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    .AddMeter("DataProducer.TokenService")
+                    .AddMeter("DataProducer.TokenRetrievalHandler");
             })
             .WithTracing(tracing =>
             {
@@ -73,7 +75,9 @@ public static class Extensions
                     // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
                     .AddGrpcClientInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddSource("DataProducer.Worker");
+                    .AddSource("DataProducer.Worker")
+                    .AddSource("DataProducer.TokenService")
+                    .AddSource("DataProducer.TokenRetrievalHandler");
             });
 
         builder.AddOpenTelemetryExporters();
