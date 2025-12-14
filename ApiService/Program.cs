@@ -120,14 +120,19 @@ app.MapGet("/.well-known/openid-configuration", (HttpContext ctx) =>
 // --- ENDPUNKT 3: Public Key (JWKS) ---
 app.MapGet("/.well-known/jwks", () =>
 {
-    // Konvertiert unseren RSA Public Key in das JWK JSON Format
-    var jwk = JsonWebKeyConverter.ConvertFromRSASecurityKey(securityKey);
-    jwk.Kty = "RSA";
-    jwk.Use = "sig";
-    jwk.Alg = "RS256";
-    var jwks = new JsonWebKeySet();
-    jwks.Keys.Add(jwk);
-    return Results.Json(jwks, contentType: "application/jwk-set+json");
+    // Public-only JWK, damit Bibliotheken wie go-oidc/go-jose den Key sicher parsen
+    var parameters = rsaKey.ExportParameters(false);
+    var jwk = new
+    {
+        kty = "RSA",
+        kid = "key-1",
+        use = "sig",
+        alg = "RS256",
+        n = Base64UrlEncoder.Encode(parameters.Modulus),
+        e = Base64UrlEncoder.Encode(parameters.Exponent)
+    };
+
+    return Results.Json(new { keys = new[] { jwk } }, contentType: "application/jwk-set+json");
 });
 
 app.MapDefaultEndpoints();
