@@ -29,7 +29,7 @@ internal static class EndpointExtensions
                 var config = new OpenIdConnectConfiguration
                 {
                     Issuer = baseUrl,
-                    JwksUri = $"{baseUrl}/{Endpoints.WellKnown.Prefix}{Endpoints.WellKnown.Jwks}",
+                    JwksUri = $"{baseUrl}{Endpoints.WellKnown.Prefix}{Endpoints.WellKnown.Jwks}",
                     AuthorizationEndpoint = $"{baseUrl}/token",
                     TokenEndpoint = $"{baseUrl}/token"
                 };
