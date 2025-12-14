@@ -47,3 +47,6 @@ jobs:
           NUGET_TOKEN: ${{ secrets.NUGET_ORG_API_KEY }}
           CI_COMMIT_SHA: ${{ github.sha }}
         run: npx semantic-release
+      - uses: anchore/sbom-action@v0
+        with:
+           path: ./src/

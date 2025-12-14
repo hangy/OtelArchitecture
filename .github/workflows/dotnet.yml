@@ -8,6 +8,7 @@ on:
       - beta
       - dev
       - "*.x"
+      - "feat/generate-sbom"
   pull_request:
     branches:
       - main
@@ -32,3 +33,11 @@ jobs:
         run: dotnet restore --locked-mode
       - name: Build
         run: dotnet build --no-restore
+  sbom:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: anchore/sbom-action@v0
+        with:
+           path: ./src/
