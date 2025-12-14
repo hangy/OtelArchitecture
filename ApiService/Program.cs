@@ -11,6 +11,12 @@ var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha2
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Canonical issuer override (important when different callers reach the service via different hosts,
+// e.g. Aspire service discovery vs Docker containers).
+var canonicalIssuer = builder.Configuration["Oidc:Issuer"]
+    ?? builder.Configuration["OIDC_ISSUER"];
+canonicalIssuer = string.IsNullOrWhiteSpace(canonicalIssuer) ? null : canonicalIssuer.TrimEnd('/');
+
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 
@@ -90,7 +96,7 @@ app.MapGet("/token", (HttpContext ctx) =>
     {
         Subject = MapCurrentUserToOpenIdClaims(ctx.User),
         Expires = DateTime.UtcNow.AddHours(1),
-        Issuer = $"{ctx.Request.Scheme}://{ctx.Request.Host}",
+        Issuer = canonicalIssuer ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}",
         Audience = "my-app",
         SigningCredentials = credentials
     };
@@ -104,7 +110,7 @@ app.MapGet("/token", (HttpContext ctx) =>
 // --- ENDPUNKT 2: Discovery Document (.well-known) ---
 app.MapGet("/.well-known/openid-configuration", (HttpContext ctx) =>
 {
-    var baseUrl = $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+    var baseUrl = canonicalIssuer ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}";
     var config = new OpenIdConnectConfiguration
     {
         Issuer = baseUrl,
