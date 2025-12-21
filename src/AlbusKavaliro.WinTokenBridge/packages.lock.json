@@ -195,8 +195,8 @@
       "servicedefaults": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Extensions.Http.Resilience": "[10.0.1, )",
-          "Microsoft.Extensions.ServiceDiscovery": "[10.0.1, )",
+          "Microsoft.Extensions.Http.Resilience": "[10.1.0, )",
+          "Microsoft.Extensions.ServiceDiscovery": "[10.1.0, )",
           "OpenTelemetry.Exporter.OpenTelemetryProtocol": "[1.14.0, )",
           "OpenTelemetry.Extensions.Hosting": "[1.14.0, )",
           "OpenTelemetry.Instrumentation.AspNetCore": "[1.14.0, )",
@@ -207,7 +207,7 @@
       },
       "Microsoft.Extensions.Http.Resilience": {
         "type": "CentralTransitive",
-        "requested": "[10.0.1, )",
+        "requested": "[10.1.0, )",
         "resolved": "10.1.0",
         "contentHash": "rwDoQBB93yQjd1XtcZBnOLRX23LW7Z49TIAp1sn7i2r/pW3y4iB8E+EEL0ZyOPuEZxT9xEVN9y39KWlG1FDPkQ==",
         "dependencies": {
@@ -217,7 +217,7 @@
       },
       "Microsoft.Extensions.ServiceDiscovery": {
         "type": "CentralTransitive",
-        "requested": "[10.0.1, )",
+        "requested": "[10.1.0, )",
         "resolved": "10.1.0",
         "contentHash": "b78YWSrwXQI/pSzKIe/TO1lC2FcBfrux6+AmgTRStKcJYHNU1r8ii1GICRNv37CobIcaW8w33LW+xmThqIG/bg==",
         "dependencies": {
