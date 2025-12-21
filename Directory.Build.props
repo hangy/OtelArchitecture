@@ -22,4 +22,11 @@
     <Version>0.0.1</Version>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <RuntimeWindows>win-x64;win-x86;win-arm64</RuntimeWindows>
+    <RuntimeLinux>linux-x64;linux-musl-x64;linux-musl-arm64;linux-arm;linux-arm64</RuntimeLinux>
+    <RuntimeOSX>osx-x64;osx-arm64</RuntimeOSX>
+    <RuntimeIdentifiers>$(RuntimeWindows);$(RuntimeLinux);$(RuntimeOSX)</RuntimeIdentifiers>
+  </PropertyGroup>
+
 </Project>
