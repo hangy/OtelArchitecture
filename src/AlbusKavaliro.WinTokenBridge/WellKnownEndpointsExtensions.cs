@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 
-namespace ApiService;
+namespace AlbusKavaliro.WinTokenBridge;
 
 internal static class EndpointExtensions
 {
@@ -23,15 +23,15 @@ internal static class EndpointExtensions
     {
         public RouteHandlerBuilder MapOpenIdConfigurationEndpoint()
         {
-            return group.MapGet(Endpoints.WellKnown.OpenIdConfiguration, (HttpContext ctx, IOptions<OidcOptions> opts) =>
+            return group.MapGet(Endpoints.WellKnown.OpenIdConfiguration, static (HttpContext ctx, IOptions<OidcOptions> opts) =>
             {
                 var baseUrl = opts.Value.Issuer ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}";
                 var config = new OpenIdConnectConfiguration
                 {
                     Issuer = baseUrl,
                     JwksUri = $"{baseUrl}{Endpoints.WellKnown.Prefix}{Endpoints.WellKnown.Jwks}",
-                    AuthorizationEndpoint = $"{baseUrl}/token",
-                    TokenEndpoint = $"{baseUrl}/token"
+                    AuthorizationEndpoint = $"{baseUrl}/${Endpoints.Token}",
+                    TokenEndpoint = $"{baseUrl}{Endpoints.Token}"
                 };
                 config.ResponseTypesSupported.Add("token");
                 config.IdTokenSigningAlgValuesSupported.Add("RS256");
@@ -41,7 +41,7 @@ internal static class EndpointExtensions
 
         public RouteHandlerBuilder MapJwksEndpoint()
         {
-            return group.MapGet(Endpoints.WellKnown.Jwks, (SigningCertificateProvider provider) =>
+            return group.MapGet(Endpoints.WellKnown.Jwks, static (SigningCertificateProvider provider) =>
             {
                 var keys = new List<object>();
 

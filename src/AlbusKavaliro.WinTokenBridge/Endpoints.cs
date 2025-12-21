@@ -1,5 +1,4 @@
-
-namespace ApiService;
+namespace AlbusKavaliro.WinTokenBridge;
 
 internal sealed class Endpoints
 {

@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
+namespace AlbusKavaliro.WinTokenBridge;
+
 public class CertificateHealthCheck : IHealthCheck
 {
     private readonly SigningCertificateProvider _provider;
