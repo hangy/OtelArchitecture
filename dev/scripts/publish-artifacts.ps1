@@ -65,20 +65,27 @@ foreach ($rid in $rids) {
 
         # self-contained (SC)
         $outSc = Join-Path $PublishRoot "wintokenbridge-$Version-sc-$rid"
-        Write-Host "Publishing SC for $rid -> $outSc (trimmed + AOT)"
-        dotnet publish $Project -c Release -o $outSc -r $rid --self-contained true -p:Version=$Version -p:PublishTrimmed=true -p:PublishAot=true --no-restore
+        Write-Host "Publishing SC for $rid -> $outSc"
+        # For ASP.NET Core web projects AOT + PublishTrimmed may not produce a platform exe host.
+        # Enable `UseAppHost=true` for Windows to ensure an .exe is produced. Avoid AOT and trimming for web projects.
+        if ($ridIsWindows) {
+            dotnet publish $Project -c Release -o $outSc -r $rid --self-contained true -p:Version=$Version -p:UseAppHost=true -p:PublishTrimmed=false -p:PublishAot=false --no-restore
+        }
+        else {
+            dotnet publish $Project -c Release -o $outSc -r $rid --self-contained true -p:Version=$Version -p:PublishTrimmed=false -p:PublishAot=false --no-restore
+        }
     }
     elseif ($ridIsLinux -or $ridIsOsx) {
         # for non-windows produce self-contained builds (portable)
         $outSc = Join-Path $PublishRoot "wintokenbridge-$Version-sc-$rid"
-        Write-Host "Publishing SC for $rid -> $outSc (trimmed + AOT)"
-        dotnet publish $Project -c Release -o $outSc -r $rid --self-contained true -p:Version=$Version -p:PublishTrimmed=true -p:PublishAot=true --no-restore
+        Write-Host "Publishing SC for $rid -> $outSc"
+        dotnet publish $Project -c Release -o $outSc -r $rid --self-contained true -p:Version=$Version -p:PublishTrimmed=false -p:PublishAot=false --no-restore
     }
     else {
         # unknown platform: produce self-contained by default
         $outSc = Join-Path $PublishRoot "wintokenbridge-$Version-sc-$rid"
-        Write-Host "Publishing SC for unknown RID $rid -> $outSc (trimmed + AOT)"
-        dotnet publish $Project -c Release -o $outSc -r $rid --self-contained true -p:Version=$Version -p:PublishTrimmed=true -p:PublishAot=true --no-restore
+        Write-Host "Publishing SC for unknown RID $rid -> $outSc"
+        dotnet publish $Project -c Release -o $outSc -r $rid --self-contained true -p:Version=$Version -p:PublishTrimmed=false -p:PublishAot=false --no-restore
     }
 }
 
