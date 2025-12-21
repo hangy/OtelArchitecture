@@ -8,8 +8,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\AlbusKavaliro.WinTokenBridge\AlbusKavaliro.WinTokenBridge.csproj" />
     <ProjectReference Include="..\..\dev\DataProducer\DataProducer.csproj" />
-    <ProjectReference Include="..\..\examples\AuthenticatedApi\AuthenticatedApi.csproj" />
-    <ProjectReference Include="..\..\examples\SomeClient\SomeClient.csproj" />
   </ItemGroup>
 
 </Project>

@@ -3,10 +3,6 @@
     <Project Path="dev/AppHost/AppHost.csproj" />
     <Project Path="dev/DataProducer/DataProducer.csproj" />
   </Folder>
-  <Folder Name="/examples/">
-    <Project Path="examples/AuthenticatedApi/AuthenticatedApi.csproj" />
-    <Project Path="examples/SomeClient/SomeClient.csproj" />
-  </Folder>
   <Folder Name="/src/">
     <Project Path="src/AlbusKavaliro.WinTokenBridge/AlbusKavaliro.WinTokenBridge.csproj" />
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />

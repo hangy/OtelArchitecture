@@ -5,7 +5,7 @@
 
 This repository contains small test projects that demonstrate a token service used to authenticate clients (for example: an OpenTelemetry Collector) against an OpenID Connect / token provider running on Windows Server.
 
-This README documents how to deploy the token service to IIS on Windows Server and how to configure the OpenTelemetry Collector to use tokens issued by this service for authentication. It assumes the projects in the `dev/` and `examples/` folders have been built and the resulting binaries are available.
+This README documents how to deploy the token service to IIS on Windows Server and how to configure the OpenTelemetry Collector to use tokens issued by this service for authentication. It assumes the projects in the `dev/` folder have been built and the resulting binaries are available.
 
 ## Prerequisites
 

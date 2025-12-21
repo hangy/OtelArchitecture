@@ -82,17 +82,4 @@ var businessProcess = builder.AddProject<Projects.DataProducer>("dataproducer")
     .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otelHttp)
     .WithEnvironment("OTEL_CLIENT_ID", audience);
 
-var authenticatedApi = builder.AddProject<Projects.AuthenticatedApi>("authenticatedapi")
-    .WithReference(tokenServerHttp)
-    .WaitFor(tokenServer)
-    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://localhost:21045");
-
-var someClient = builder.AddProject<Projects.SomeClient>("someclient")
-    .WithReference(tokenServerHttp)
-    .WaitFor(tokenServer)
-    .WithReference(authenticatedApi)
-    .WaitFor(authenticatedApi)
-    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://localhost:21045")
-    .WithEnvironment("OTEL_CLIENT_ID", audience);
-
 await builder.Build().RunAsync().ConfigureAwait(false);
