@@ -4,6 +4,7 @@
 
 using System;
 using System.Net.Http.Json;
+using System.Net.Http;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
@@ -48,7 +49,10 @@ public class TokenService(HttpClient httpClient, TimeProvider timeProvider) : IT
     {
         using var activity = s_activitySource.StartActivity("RefreshToken");
 
-        _token = await httpClient.GetFromJsonAsync<Token>("http://tokenserver/token", cancellationToken).ConfigureAwait(false);
+            using FormUrlEncodedContent form = new([new KeyValuePair<string, string>("client_id", Environment.GetEnvironmentVariable("OTEL_CLIENT_ID") ?? "")]);
+            var response = await httpClient.PostAsync("http://tokenserver/token", form, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            _token = await response.Content.ReadFromJsonAsync<Token>(cancellationToken: cancellationToken).ConfigureAwait(false);
         _lastRefreshed = timeProvider.GetUtcNow();
 
         s_tokenRefreshes.Add(1);

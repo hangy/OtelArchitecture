@@ -1,4 +1,4 @@
-using ApiService;
+using AlbusKavaliro.WinTokenBridge;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 
 var builder = WebApplication.CreateBuilder(args);

@@ -10,7 +10,9 @@ extensions:
   oidc:
     providers:
       - issuer_url: ${env:TOKENSERVER_HTTP}
-        audience: my-app
+        # The collector's configured `audience` must match the `client_id`
+        # used when requesting a token from the token service.
+        audience: ${env:OTEL_AUDIENCE}
         username_claim: sub
         groups_claim: role
   basicauth/client:

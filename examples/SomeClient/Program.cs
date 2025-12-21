@@ -82,7 +82,10 @@ public class TokenClient(HttpClient http)
 {
     public async Task<string> GetTokenAsync(CancellationToken cancellationToken)
     {
-        var response = await http.GetFromJsonAsync<TokenResponse>("http://tokenserver/token", cancellationToken);
+        using FormUrlEncodedContent form = new([new KeyValuePair<string, string>("client_id", Environment.GetEnvironmentVariable("OTEL_CLIENT_ID") ?? "")]);
+        using var resp = await http.PostAsync("http://tokenserver/token", form, cancellationToken).ConfigureAwait(false);
+        resp.EnsureSuccessStatusCode();
+        var response = await resp.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken: cancellationToken).ConfigureAwait(false);
         return response?.AccessToken ?? string.Empty;
     }
 

@@ -1,4 +1,4 @@
-namespace ApiService;
+namespace AlbusKavaliro.WinTokenBridge;
 
 internal static class SigningInfoEndpointExtensions
 {
@@ -6,7 +6,7 @@ internal static class SigningInfoEndpointExtensions
     {
         public RouteHandlerBuilder MapSigningInfoEndpoint()
         {
-            return endpoints.MapGet(Endpoints.SigningInfo, (SigningCertificateProvider provider) =>
+            return endpoints.MapGet(Endpoints.SigningInfo, static (SigningCertificateProvider provider) =>
             {
                 var cert = provider.GetSigningCert();
                 if (cert == null)

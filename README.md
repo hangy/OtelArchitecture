@@ -51,7 +51,10 @@ Ensure the server firewall allows inbound traffic on the ports you bind (e.g. `4
 
 ## Configure OpenTelemetry Collector to use token auth
 
-Below is an example snippet adapted from `dev/AppHost/collector-with-token-auth.yaml`. The important parts are the `oidc` extension (configured with `issuer_url`, `audience`, and claim mappings) and using `auth: authenticator: oidc` on the receiver endpoints so the collector will validate tokens presented by clients.
+Below is an example snippet adapted from `dev/AppHost/collector-with-token-auth.yaml`. Note the following changes compared to older examples:
+
+- The token service is configured with a collection of allowed audiences (`Oidc:Audiences`).
+- When requesting a token clients MUST provide a `client_id` parameter; the issued token will be valid for that single audience (the `aud` claim will contain exactly one value).
 
 ### collector configuration snippet
 

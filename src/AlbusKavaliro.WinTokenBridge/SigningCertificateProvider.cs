@@ -3,6 +3,8 @@ using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
+namespace AlbusKavaliro.WinTokenBridge;
+
 public sealed class SigningCertificateProvider : IDisposable
 {
     private readonly IDisposable _changeToken;

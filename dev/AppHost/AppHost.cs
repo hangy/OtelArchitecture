@@ -7,12 +7,14 @@ const string otelBasicAuthUserEnv = "OTEL_BASICAUTH_USER";
 const string otelBasicAuthPasswordEnv = "OTEL_BASICAUTH_PASSWORD";
 string otelBasicAuthUser = Guid.NewGuid().ToString("N");
 string otelBasicAuthPassword = Guid.NewGuid().ToString("N");
+string audience = Guid.NewGuid().ToString("N");
 
 var tokenServer = builder.AddProject<Projects.AlbusKavaliro_WinTokenBridge>("tokenserver")
     .WithExternalHttpEndpoints()
     .AsHttp2Service()
     .WithHttpHealthCheck("/health")
-    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://localhost:21045");
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://localhost:21045")
+    .WithEnvironment("Oidc__Audiences__0", audience);
 
 var tokenServerHttp = tokenServer.GetEndpoint("http");
 
@@ -65,7 +67,8 @@ var collectorWithTokenAuth = builder.AddContainer("collectorwithtokenauth", "ote
     .WaitFor(collectorWithBasicAuth)
     .WithOtlpExporter()
     .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://host.docker.internal:21045")
-    .WithDeveloperCertificateTrust(true);
+    .WithDeveloperCertificateTrust(true)
+    .WithEnvironment("OTEL_AUDIENCE", audience);
 
 var otelHttp = collectorWithTokenAuth.GetEndpoint("http");
 
@@ -76,7 +79,8 @@ var businessProcess = builder.AddProject<Projects.DataProducer>("dataproducer")
     .WithReference(otelHttp)
     .WithOtlpExporter(OtlpProtocol.HttpProtobuf)
     //.WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://localhost:21046");
-    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otelHttp);
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otelHttp)
+    .WithEnvironment("OTEL_CLIENT_ID", audience);
 
 var authenticatedApi = builder.AddProject<Projects.AuthenticatedApi>("authenticatedapi")
     .WithReference(tokenServerHttp)
@@ -88,6 +92,7 @@ var someClient = builder.AddProject<Projects.SomeClient>("someclient")
     .WaitFor(tokenServer)
     .WithReference(authenticatedApi)
     .WaitFor(authenticatedApi)
-    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://localhost:21045");
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "https://localhost:21045")
+    .WithEnvironment("OTEL_CLIENT_ID", audience);
 
 await builder.Build().RunAsync().ConfigureAwait(false);
