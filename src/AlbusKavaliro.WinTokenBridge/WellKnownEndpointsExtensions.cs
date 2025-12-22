@@ -30,7 +30,7 @@ internal static class EndpointExtensions
                 {
                     Issuer = baseUrl,
                     JwksUri = $"{baseUrl}{Endpoints.WellKnown.Prefix}{Endpoints.WellKnown.Jwks}",
-                    AuthorizationEndpoint = $"{baseUrl}/${Endpoints.Token}",
+                    AuthorizationEndpoint = $"{baseUrl}/{Endpoints.Token}",
                     TokenEndpoint = $"{baseUrl}{Endpoints.Token}"
                 };
                 config.ResponseTypesSupported.Add("token");
